@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Killer Darts Scorer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23c0392b'/%3E%3Ccircle cx='50' cy='50' r='30' fill='%23f4e9d8'/%3E%3Ccircle cx='50' cy='50' r='15' fill='%2327ae60'/%3E%3Ccircle cx='50' cy='50' r='5' fill='%23f4e9d8'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #161616;
+    --panel: #212121;
+    --panel-2: #2a2a2a;
+    --red: #c0392b;
+    --amber: #d68910;
+    --green: #27ae60;
+    --cream: #f4e9d8;
+    --muted: #8a8a8a;
+    --border: #3a3a3a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { overscroll-behavior-y: contain; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--cream);
+    min-height: 100vh;
+  }
+  #app { max-width: 480px; margin: 0 auto; padding: 12px 12px 40px; }
+  header { text-align: center; padding: 14px 0 4px; }
+  header h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    letter-spacing: 0.02em;
+  }
+  header h1 span { color: var(--red); }
+  header p { color: var(--muted); margin: 4px 0 0; font-size: 0.82rem; }
+
+  section { display: none; }
+  section.active { display: block; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  label { font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 4px; }
+
+  .player-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    margin-bottom: 10px;
+  }
+  .player-row .field { flex: 1; }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--cream);
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+  input[type="number"] { width: 80px; }
+  .remove-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    width: 40px;
+    height: 41px;
+    font-size: 1.1rem;
+  }
+  .remove-btn:active { color: var(--red); border-color: var(--red); }
+
+  button { cursor: pointer; font-family: inherit; -webkit-appearance: none; appearance: none; }
+  .btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--cream);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+  .btn:active { border-color: var(--cream); }
+  .btn-primary { background: var(--red); border-color: var(--red); color: #fff; font-weight: 600; width: 100%; padding: 14px; font-size: 1rem; }
+  .btn-primary:active { background: #a83224; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .btn-row .btn { flex: 1; min-width: 100px; }
+
+  .setup-options { display: flex; flex-direction: column; gap: 14px; margin: 14px 0; }
+  .option-block { display: flex; flex-direction: column; gap: 4px; }
+  .checkbox-line { display: flex; align-items: center; gap: 8px; }
+  .checkbox-line input { width: 18px; height: 18px; }
+  .hint { font-size: 0.76rem; color: var(--muted); }
+
+  .turn-banner {
+    background: var(--panel-2);
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .turn-banner .tb-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .turn-banner .tb-name { font-weight: 700; color: var(--green); font-size: 1.05rem; }
+  .turn-banner .tb-darts { font-size: 0.78rem; color: var(--muted); }
+  .turn-banner .tb-sub { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+  .turn-banner .tb-last { font-size: 0.72rem; color: var(--muted); opacity: 0.6; margin-top: 4px; font-style: italic; }
+
+  .winner-banner {
+    background: linear-gradient(135deg, var(--red), #8e2d20);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .mult-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .mult-btn {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--panel-2);
+    color: var(--cream);
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .mult-btn span { font-size: 0.68rem; color: var(--muted); font-weight: 400; }
+  .mult-btn.active { border-color: var(--amber); background: rgba(214,137,16,0.15); }
+  .mult-btn.active span { color: var(--amber); }
+  .mult-btn[data-mult="T"].active { border-color: var(--red); background: rgba(192,57,43,0.15); }
+  .mult-btn[data-mult="T"].active span { color: var(--red); }
+
+  .number-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .num-btn {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--panel-2);
+    color: var(--cream);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.05rem;
+    padding: 2px;
+    min-height: 0;
+  }
+  .num-btn .owner {
+    font-size: 0.52rem;
+    font-weight: 400;
+    color: var(--muted);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .num-btn.unclaimed { opacity: 0.32; }
+  .num-btn.own-number { border-color: var(--green); }
+  .num-btn.killer-owner { border-color: var(--red); }
+  .num-btn.eliminated-owner { opacity: 0.28; text-decoration: line-through; }
+
+  .players-list { display: flex; flex-direction: column; gap: 8px; }
+  .player-card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+  .player-card.current { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+  .player-card.killer { border-color: var(--red); }
+  .player-card.eliminated { opacity: 0.42; }
+
+  .pc-number {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+  .player-card.killer .pc-number { border-color: var(--red); color: var(--red); }
+
+  .pc-mid { flex: 1; min-width: 0; }
+  .pc-name-row { display: flex; align-items: center; gap: 6px; }
+  .pc-name { font-weight: 600; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge.killer { color: var(--red); border-color: var(--red); }
+  .badge.doggy-used { color: var(--green); border-color: var(--green); }
+
+  .pc-lives { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+  .life-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); display: inline-block; }
+  .life-dot.used { background: var(--panel); border: 1px solid var(--border); }
+  .pc-progress { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+  .pc-out-stamp {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--red); border: 1px solid var(--red);
+    padding: 2px 7px; border-radius: 6px; flex-shrink: 0;
+  }
+
+  #throwLog { display: flex; flex-direction: column-reverse; gap: 4px; max-height: 180px; overflow-y: auto; font-size: 0.8rem; color: var(--muted); }
+  #throwLog .log-entry { padding: 4px 0; border-bottom: 1px solid var(--border); }
+  #throwLog .log-entry:first-child { color: var(--cream); }
+
+  footer.actions { margin-top: 8px; }
+
+  .resume-banner {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .resume-banner p { margin: 0 0 10px; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1><span>Killer</span> Darts Scorer</h1>
+    <p>Tap what was thrown — lives &amp; killer status work themselves out.</p>
+  </header>
+
+  <div id="resumeBanner" class="resume-banner" style="display:none;">
+    <p>You have a game in progress.</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="resumeBtn" style="width:auto;flex:1;">Resume game</button>
+      <button class="btn" id="discardBtn">Start new instead</button>
+    </div>
+  </div>
+
+  <section id="setup" class="active">
+    <div class="card">
+      <label>Players</label>
+      <div id="playerRows"></div>
+      <div class="btn-row">
+        <button class="btn" id="addPlayerBtn">+ Add player</button>
+        <button class="btn" id="randomNumbersBtn">🎲 Randomise numbers</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="setup-options">
+        <div class="option-block">
+          <label for="startLives">Starting lives</label>
+          <input type="number" id="startLives" min="1" max="10" value="3" style="width:80px;">
+        </div>
+        <div class="option-block">
+          <div class="checkbox-line">
+            <input type="checkbox" id="doggyLifeToggle">
+            <label for="doggyLifeToggle" style="margin:0;">Doggy life rule</label>
+          </div>
+          <span class="hint">Reaching 0 lives is safe. The first time a player would go <em>below</em> zero, they survive on their doggy life instead. Next time, they're out.</span>
+        </div>
+        <div class="option-block">
+          <div class="checkbox-line">
+            <input type="checkbox" id="hardModeToggle">
+            <label for="hardModeToggle" style="margin:0;">Hard mode</label>
+          </div>
+          <span class="hint">By default, a killer hitting their own number does nothing. In hard mode it costs them lives too (single −1, double −2, triple −3).</span>
+        </div>
+      </div>
+      <p class="hint" style="margin-bottom:10px;">Becoming a killer always takes 3 points on your own number (single = 1, double = 2, triple = 3).</p>
+      <button class="btn btn-primary" id="startGameBtn">Start Game</button>
+    </div>
+  </section>
+
+  <section id="game">
+    <div id="winnerBanner"></div>
+    <div class="turn-banner" id="turnBanner"></div>
+
+    <div class="card">
+      <div class="mult-row">
+        <button class="mult-btn" data-mult="S">SINGLE<span>×1</span></button>
+        <button class="mult-btn" data-mult="D">DOUBLE<span>×2</span></button>
+        <button class="mult-btn" data-mult="T">TRIPLE<span>×3</span></button>
+      </div>
+      <div class="number-grid" id="numberGrid"></div>
+      <div class="btn-row">
+        <button class="btn" id="missBtn">Miss</button>
+        <button class="btn" id="undoBtn">↩ Undo last dart</button>
+        <button class="btn" id="endTurnBtn">End turn ▶</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Players</label>
+      <div class="players-list" id="playersList"></div>
+    </div>
+
+    <div class="card">
+      <label>Throw log</label>
+      <div id="throwLog"></div>
+    </div>
+
+    <footer class="actions">
+      <button class="btn" id="newGameBtn" style="width:100%;">New game</button>
+    </footer>
+  </section>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'killerDartsGame';
+  const POINTS_TO_KILL = 3;
+  const MULT_VALUE = { S: 1, D: 2, T: 3 };
+  const MULT_LABEL = { S: 'S', D: 'D', T: 'T' };
+
+  const setupSection = document.getElementById('setup');
+  const gameSection = document.getElementById('game');
+  const playerRows = document.getElementById('playerRows');
+  const addPlayerBtn = document.getElementById('addPlayerBtn');
+  const randomNumbersBtn = document.getElementById('randomNumbersBtn');
+  const startGameBtn = document.getElementById('startGameBtn');
+  const startLivesInput = document.getElementById('startLives');
+  const doggyLifeToggle = document.getElementById('doggyLifeToggle');
+  const hardModeToggle = document.getElementById('hardModeToggle');
+
+  const turnBanner = document.getElementById('turnBanner');
+  const winnerBanner = document.getElementById('winnerBanner');
+  const numberGrid = document.getElementById('numberGrid');
+  const playersList = document.getElementById('playersList');
+  const throwLog = document.getElementById('throwLog');
+  const missBtn = document.getElementById('missBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const endTurnBtn = document.getElementById('endTurnBtn');
+  const newGameBtn = document.getElementById('newGameBtn');
+  const resumeBanner = document.getElementById('resumeBanner');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const discardBtn = document.getElementById('discardBtn');
+
+  let game = null;
+  let history = [];
+  let selectedMult = 'S';
+  let rowCount = 0;
+
+  // ---------- Setup screen ----------
+
+  function addPlayerRow(name, number) {
+    rowCount++;
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `
+      <div class="field">
+        <label>Name</label>
+        <input type="text" class="p-name" placeholder="Player name" value="${name || ''}">
+      </div>
+      <div class="field" style="flex:none;">
+        <label>Number</label>
+        <input type="number" class="p-number" min="1" max="20" placeholder="1-20" value="${number || ''}">
+      </div>
+      <button class="remove-btn" title="Remove player">✕</button>
+    `;
+    row.querySelector('.remove-btn').addEventListener('click', () => {
+      if (playerRows.children.length > 1) row.remove();
+    });
+    playerRows.appendChild(row);
+  }
+
+  addPlayerBtn.addEventListener('click', () => addPlayerRow());
+
+  randomNumbersBtn.addEventListener('click', () => {
+    const rows = [...playerRows.querySelectorAll('.player-row')];
+    const pool = [];
+    for (let i = 1; i <= 20; i++) pool.push(i);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    rows.forEach((row, idx) => { row.querySelector('.p-number').value = pool[idx] || ''; });
+  });
+
+  startGameBtn.addEventListener('click', () => {
+    const rows = [...playerRows.querySelectorAll('.player-row')];
+    const players = [];
+    const numbersSeen = new Set();
+    let error = '';
+
+    rows.forEach((row) => {
+      const name = row.querySelector('.p-name').value.trim();
+      const number = parseInt(row.querySelector('.p-number').value, 10);
+      if (!name && !number) return;
+      if (!name) { error = 'Every player needs a name.'; return; }
+      if (!number || number < 1 || number > 20) { error = `${name} needs a number between 1 and 20.`; return; }
+      if (numbersSeen.has(number)) { error = `Number ${number} is used by more than one player.`; return; }
+      numbersSeen.add(number);
+      players.push({ name, number });
+    });
+
+    if (error) { alert(error); return; }
+    if (players.length < 2) { alert('Add at least 2 players.'); return; }
+
+    const startLives = Math.max(1, parseInt(startLivesInput.value, 10) || 3);
+
+    game = {
+      doggyEnabled: doggyLifeToggle.checked,
+      hardMode: hardModeToggle.checked,
+      startLives,
+      players: players.map((p, i) => ({ id: i, name: p.name, number: p.number })),
+      throws: [],
+      currentIndex: 0,
+      dartsThisTurn: 0,
+    };
+    history = [];
+    selectedMult = 'S';
+    saveGame();
+    renderGame();
+    showSection('game');
+  });
+
+  // ---------- Derived state (pure replay of throws) ----------
+
+  function deriveState(g) {
+    const players = g.players.map(p => ({
+      id: p.id, name: p.name, number: p.number,
+      lives: g.startLives, ownPoints: 0, isKiller: false,
+      doggyUsed: false, eliminated: false,
+    }));
+    const byId = new Map(players.map(p => [p.id, p]));
+    const byNumber = new Map(players.map(p => [p.number, p]));
+    const events = [];
+
+    function applyLifeLoss(target, amount) {
+      let lost = 0;
+      for (let i = 0; i < amount; i++) {
+        if (target.eliminated) break;
+        target.lives -= 1;
+        lost++;
+        if (target.lives < 0) {
+          if (g.doggyEnabled && !target.doggyUsed) {
+            target.doggyUsed = true;
+            target.lives = 0;
+          } else {
+            target.eliminated = true;
+            target.lives = 0;
+            break;
+          }
+        }
+      }
+      return lost;
+    }
+
+    g.throws.forEach(t => {
+      const thrower = byId.get(t.playerId);
+      if (!thrower) return;
+      if (t.mult === null) {
+        events.push(`${thrower.name} — miss`);
+        return;
+      }
+      const value = MULT_VALUE[t.mult];
+      const label = `${MULT_LABEL[t.mult]}${t.number}`;
+      if (thrower.eliminated) {
+        events.push(`${thrower.name} — ${label} (already out)`);
+        return;
+      }
+      const target = byNumber.get(t.number);
+      if (!target) {
+        events.push(`${thrower.name} — ${label} (unclaimed)`);
+        return;
+      }
+      if (target.id === thrower.id) {
+        if (!thrower.isKiller) {
+          thrower.ownPoints += value;
+          if (thrower.ownPoints >= POINTS_TO_KILL) {
+            thrower.isKiller = true;
+            events.push(`${thrower.name} — ${label} (own #) → becomes KILLER`);
+          } else {
+            events.push(`${thrower.name} — ${label} (own #) → ${thrower.ownPoints}/${POINTS_TO_KILL} to killer`);
+          }
+        } else if (g.hardMode) {
+          const lost = applyLifeLoss(thrower, value);
+          events.push(`${thrower.name} — ${label} (own #, hard mode) → −${lost}${thrower.eliminated ? ' (OUT)' : ''}`);
+        } else {
+          events.push(`${thrower.name} — ${label} (own #, no effect)`);
+        }
+      } else if (target.eliminated) {
+        events.push(`${thrower.name} — ${label} (${target.name} already out)`);
+      } else if (thrower.isKiller) {
+        const lost = applyLifeLoss(target, value);
+        events.push(`${thrower.name} — ${label} → ${target.name} −${lost}${target.eliminated ? ' (OUT)' : ''}`);
+      } else {
+        events.push(`${thrower.name} — ${label} (not a killer yet, no effect)`);
+      }
+    });
+
+    return { players, events };
+  }
+
+  // ---------- Game actions ----------
+
+  function snapshot() {
+    history.push(JSON.parse(JSON.stringify(game)));
+    if (history.length > 200) history.shift();
+  }
+
+  function aliveIds(derived) {
+    return derived.players.filter(p => !p.eliminated).map(p => p.id);
+  }
+
+  function advanceTurn(derived) {
+    const alive = aliveIds(derived);
+    if (alive.length <= 1) return;
+    let idx = game.currentIndex;
+    for (let i = 0; i < game.players.length; i++) {
+      idx = (idx + 1) % game.players.length;
+      const p = derived.players.find(pl => pl.id === game.players[idx].id);
+      if (p && !p.eliminated) break;
+    }
+    game.currentIndex = idx;
+    game.dartsThisTurn = 0;
+  }
+
+  function logThrow(number, mult) {
+    if (!game) return;
+    const derivedBefore = deriveState(game);
+    const current = derivedBefore.players.find(p => p.id === game.currentIndex);
+    if (current && current.eliminated) return;
+    snapshot();
+    game.throws.push({ playerId: game.currentIndex, number, mult });
+    game.dartsThisTurn += 1;
+    const derivedAfter = deriveState(game);
+    const currentAfter = derivedAfter.players.find(p => p.id === game.currentIndex);
+    if ((currentAfter && currentAfter.eliminated) || game.dartsThisTurn >= 3) {
+      advanceTurn(derivedAfter);
+    }
+    saveGame();
+    renderGame();
+  }
+
+  function undo() {
+    if (history.length === 0) return;
+    game = history.pop();
+    saveGame();
+    renderGame();
+  }
+
+  function endTurnManually() {
+    if (!game) return;
+    snapshot();
+    const derived = deriveState(game);
+    advanceTurn(derived);
+    saveGame();
+    renderGame();
+  }
+
+  function selectThrower(playerId) {
+    const derived = deriveState(game);
+    const p = derived.players.find(pl => pl.id === playerId);
+    if (!p || p.eliminated) return;
+    snapshot();
+    game.currentIndex = playerId;
+    game.dartsThisTurn = 0;
+    saveGame();
+    renderGame();
+  }
+
+  // ---------- Rendering ----------
+
+  function buildNumberGrid(derived) {
+    numberGrid.innerHTML = '';
+    const byNumber = new Map(derived.players.map(p => [p.number, p]));
+    const current = derived.players.find(p => p.id === game.currentIndex);
+    for (let n = 1; n <= 20; n++) {
+      const owner = byNumber.get(n);
+      const btn = document.createElement('button');
+      btn.className = 'num-btn';
+      if (!owner) btn.className += ' unclaimed';
+      if (owner && owner.eliminated) btn.className += ' eliminated-owner';
+      if (owner && current && owner.id === current.id) btn.className += ' own-number';
+      if (owner && owner.isKiller) btn.className += ' killer-owner';
+      btn.innerHTML = `${n}${owner ? `<span class="owner">${escapeHtml(owner.name)}</span>` : ''}`;
+      btn.addEventListener('click', () => logThrow(n, selectedMult));
+      numberGrid.appendChild(btn);
+    }
+  }
+
+  function renderGame() {
+    const derived = deriveState(game);
+    const alive = aliveIds(derived);
+    const winner = alive.length === 1 ? derived.players.find(p => p.id === alive[0]) : null;
+
+    if (winner) {
+      winnerBanner.innerHTML = `<div class="winner-banner">🏆 ${escapeHtml(winner.name)} wins!</div>`;
+      turnBanner.style.display = 'none';
+    } else {
+      winnerBanner.innerHTML = '';
+      turnBanner.style.display = 'block';
+      const current = derived.players.find(p => p.id === game.currentIndex);
+      const sub = current
+        ? (current.isKiller ? '🗡 killer' : `${current.ownPoints}/${POINTS_TO_KILL} points to become killer`)
+        : '';
+      const lastThrow = derived.events.length ? derived.events[derived.events.length - 1] : '';
+      turnBanner.innerHTML = current ? `
+        <div class="tb-top">
+          <span class="tb-name">${escapeHtml(current.name)} (No. ${current.number})</span>
+          <span class="tb-darts">dart ${Math.min(game.dartsThisTurn + 1, 3)} of 3</span>
+        </div>
+        <div class="tb-sub">${sub}</div>
+        ${lastThrow ? `<div class="tb-last">last: ${escapeHtml(lastThrow)}</div>` : ''}
+      ` : '';
+    }
+
+    // multiplier buttons active state
+    document.querySelectorAll('.mult-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mult === selectedMult);
+    });
+
+    buildNumberGrid(derived);
+
+    playersList.innerHTML = '';
+    derived.players.forEach((p) => {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      if (p.eliminated) card.className += ' eliminated';
+      if (p.isKiller && !p.eliminated) card.className += ' killer';
+      if (p.id === game.currentIndex && !p.eliminated && !winner) card.className += ' current';
+
+      const dots = [];
+      for (let i = 0; i < game.startLives; i++) {
+        dots.push(`<span class="life-dot ${i < p.lives ? '' : 'used'}"></span>`);
+      }
+
+      card.innerHTML = `
+        <div class="pc-number">${p.number}</div>
+        <div class="pc-mid">
+          <div class="pc-name-row">
+            <span class="pc-name">${escapeHtml(p.name)}</span>
+            ${p.isKiller && !p.eliminated ? '<span class="badge killer">🗡 KILLER</span>' : ''}
+            ${game.doggyEnabled && p.doggyUsed ? '<span class="badge doggy-used">🐾</span>' : ''}
+          </div>
+          <div class="pc-lives">${dots.join('')}<span class="pc-progress">${p.lives}/${game.startLives}</span></div>
+          ${!p.isKiller && !p.eliminated ? `<div class="pc-progress">${p.ownPoints}/${POINTS_TO_KILL} to killer</div>` : ''}
+        </div>
+        ${p.eliminated ? '<span class="pc-out-stamp">OUT</span>' : ''}
+      `;
+      if (!p.eliminated) {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => selectThrower(p.id));
+      }
+      playersList.appendChild(card);
+    });
+
+    throwLog.innerHTML = derived.events.length
+      ? derived.events.map(e => `<div class="log-entry">${escapeHtml(e)}</div>`).join('')
+      : '<div class="log-entry">No darts thrown yet.</div>';
+
+    undoBtn.disabled = history.length === 0;
+  }
+
+  document.querySelectorAll('.mult-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedMult = btn.dataset.mult;
+      renderGame();
+    });
+  });
+
+  missBtn.addEventListener('click', () => logThrow(null, null));
+  undoBtn.addEventListener('click', undo);
+  endTurnBtn.addEventListener('click', endTurnManually);
+
+  newGameBtn.addEventListener('click', () => {
+    if (!confirm('End the current game and set up a new one?')) return;
+    const carriedNames = game ? game.players.map(p => p.name) : [];
+    game = null;
+    history = [];
+    localStorage.removeItem(STORAGE_KEY);
+    playerRows.innerHTML = '';
+    rowCount = 0;
+    if (carriedNames.length) {
+      carriedNames.forEach(name => addPlayerRow(name));
+    } else {
+      addPlayerRow(); addPlayerRow();
+    }
+    showSection('setup');
+  });
+
+  // ---------- Persistence ----------
+
+  function saveGame() {
+    if (game) localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
+  }
+
+  function loadSavedGame() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (e) { return null; }
+  }
+
+  resumeBtn.addEventListener('click', () => {
+    game = loadSavedGame();
+    history = [];
+    resumeBanner.style.display = 'none';
+    if (game) { renderGame(); showSection('game'); }
+  });
+
+  discardBtn.addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    resumeBanner.style.display = 'none';
+  });
+
+  // ---------- Helpers ----------
+
+  function showSection(name) {
+    setupSection.classList.toggle('active', name === 'setup');
+    gameSection.classList.toggle('active', name === 'game');
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ---------- Init ----------
+
+  const saved = loadSavedGame();
+  if (saved) resumeBanner.style.display = 'block';
+  addPlayerRow(); addPlayerRow();
+})();
+</script>
+</body>
+</html>
