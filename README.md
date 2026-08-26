@@ -30,15 +30,6 @@ python3 -m http.server 8000
 # then visit http://localhost:8000
 ```
 
-## Host it on GitHub Pages
-
-This repo is already pushed to `github.com/mharry97/killer-darts-scorer`. To turn on Pages:
-
-1. On GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
-   branch `main`, folder `/ (root)`. Save.
-2. Your scorer will be live at `https://mharry97.github.io/killer-darts-scorer/`
-   after a minute or two.
-
 ## Notes
 
 - Game state (players, throw log) is saved to the browser's `localStorage`, so refreshing
