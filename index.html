@@ -98,6 +98,18 @@
   .checkbox-line input { width: 18px; height: 18px; }
   .hint { font-size: 0.76rem; color: var(--muted); }
 
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--cream);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+  }
+  .chip-btn:active { border-color: var(--green); }
+  .chip-btn.used { opacity: 0.35; text-decoration: line-through; }
+
   .turn-banner {
     background: var(--panel-2);
     border: 1px solid var(--green);
@@ -264,6 +276,10 @@
         <button class="btn" id="addPlayerBtn">+ Add player</button>
         <button class="btn" id="randomNumbersBtn">🎲 Randomise numbers</button>
       </div>
+      <div id="quickAddWrap" style="display:none;margin-top:12px;">
+        <label>Tap to add</label>
+        <div class="chip-row" id="quickAddChips"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -329,6 +345,7 @@
 <script>
 (function () {
   const STORAGE_KEY = 'killerDartsGame';
+  const KNOWN_PLAYERS_KEY = 'killerDartsKnownPlayers';
   const POINTS_TO_KILL = 3;
   const MULT_VALUE = { S: 1, D: 2, T: 3 };
   const MULT_LABEL = { S: 'S', D: 'D', T: 'T' };
@@ -338,6 +355,8 @@
   const playerRows = document.getElementById('playerRows');
   const addPlayerBtn = document.getElementById('addPlayerBtn');
   const randomNumbersBtn = document.getElementById('randomNumbersBtn');
+  const quickAddWrap = document.getElementById('quickAddWrap');
+  const quickAddChips = document.getElementById('quickAddChips');
   const startGameBtn = document.getElementById('startGameBtn');
   const startLivesInput = document.getElementById('startLives');
   const doggyLifeToggle = document.getElementById('doggyLifeToggle');
@@ -380,11 +399,69 @@
     `;
     row.querySelector('.remove-btn').addEventListener('click', () => {
       if (playerRows.children.length > 1) row.remove();
+      renderQuickAddChips();
     });
+    row.querySelector('.p-name').addEventListener('input', renderQuickAddChips);
     playerRows.appendChild(row);
+    renderQuickAddChips();
   }
 
   addPlayerBtn.addEventListener('click', () => addPlayerRow());
+
+  // ---------- Quick-add (recently/frequently used player names) ----------
+
+  function getKnownPlayers() {
+    try {
+      const obj = JSON.parse(localStorage.getItem(KNOWN_PLAYERS_KEY)) || {};
+      return Object.entries(obj).map(([name, meta]) => ({ name, count: meta.count, lastUsed: meta.lastUsed }));
+    } catch (e) { return []; }
+  }
+
+  function recordKnownPlayers(names) {
+    let obj = {};
+    try { obj = JSON.parse(localStorage.getItem(KNOWN_PLAYERS_KEY)) || {}; } catch (e) { obj = {}; }
+    const now = Date.now();
+    names.forEach(name => {
+      if (!obj[name]) obj[name] = { count: 0, lastUsed: 0 };
+      obj[name].count += 1;
+      obj[name].lastUsed = now;
+    });
+    localStorage.setItem(KNOWN_PLAYERS_KEY, JSON.stringify(obj));
+  }
+
+  function quickAddPlayer(name) {
+    const rows = [...playerRows.querySelectorAll('.player-row')];
+    const emptyRow = rows.find(r => r.querySelector('.p-name').value.trim() === '');
+    if (emptyRow) {
+      emptyRow.querySelector('.p-name').value = name;
+      renderQuickAddChips();
+    } else {
+      addPlayerRow(name);
+    }
+  }
+
+  function renderQuickAddChips() {
+    const known = getKnownPlayers().sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed).slice(0, 12);
+    if (!known.length) { quickAddWrap.style.display = 'none'; return; }
+    quickAddWrap.style.display = 'block';
+    const currentNames = new Set(
+      [...playerRows.querySelectorAll('.p-name')].map(i => i.value.trim()).filter(Boolean)
+    );
+    quickAddChips.innerHTML = '';
+    known.forEach(k => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip-btn';
+      btn.textContent = k.name;
+      if (currentNames.has(k.name)) {
+        btn.classList.add('used');
+        btn.disabled = true;
+      } else {
+        btn.addEventListener('click', () => quickAddPlayer(k.name));
+      }
+      quickAddChips.appendChild(btn);
+    });
+  }
 
   randomNumbersBtn.addEventListener('click', () => {
     const rows = [...playerRows.querySelectorAll('.player-row')];
@@ -416,6 +493,8 @@
 
     if (error) { alert(error); return; }
     if (players.length < 2) { alert('Add at least 2 players.'); return; }
+
+    recordKnownPlayers(players.map(p => p.name));
 
     const startLives = Math.max(1, parseInt(startLivesInput.value, 10) || 3);
 
