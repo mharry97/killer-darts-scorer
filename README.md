@@ -6,16 +6,15 @@ the log — no manual score-fiddling.
 
 ## Rules it implements
 
-- Each player claims a number (1–20).
-- Hitting your own number scores points toward becoming a killer: single = 1, double = 2,
-  triple = 3. You become a killer once you've accumulated **3 points** (fixed, regardless
-  of starting lives).
-- Once you're a killer, hitting an opponent's number costs them lives equal to the
-  multiplier (single −1, double −2, triple −3).
+- Each player claims a number (1–20). Everyone starts on **0 lives** — there's no preset pool.
+- Hitting your own number builds your lives up: single = +1, double = +2, triple = +3.
+  Reach **3** and you become a killer.
+- Once a player is a killer, an opponent hitting their number brings their lives back down
+  the same way (single −1, double −2, triple −3).
 - By default, a killer hitting their **own** number does nothing further. Turning on
-  **hard mode** makes self-hits cost lives too, on the same scale.
-- Optional **doggy life** rule: reaching 0 lives is safe, but the first time a player
-  would drop *below* zero they survive once on their doggy life — the next time, they're out.
+  **hard mode** makes those self-hits cost lives too, same as being hit by someone else.
+- Optional **doggy life** rule: reaching 0 lives is safe, but the first hit that would take
+  a player *below* zero is survived once — the next time it happens, they're out.
 - A non-killer hitting someone else's number has no effect (you have to earn the right to
   hunt first).
 

@@ -77,7 +77,15 @@
   }
   .remove-btn:active { color: var(--red); border-color: var(--red); }
 
-  button { cursor: pointer; font-family: inherit; -webkit-appearance: none; appearance: none; }
+  button {
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: transform 0.08s ease, filter 0.08s ease, background-color 0.08s ease;
+  }
+  button.pressed { transform: scale(0.93); filter: brightness(1.35); }
+  button:disabled { filter: none; }
   .btn {
     background: var(--panel-2);
     border: 1px solid var(--border);
@@ -224,12 +232,11 @@
     flex-shrink: 0;
   }
   .badge.killer { color: var(--red); border-color: var(--red); }
-  .badge.doggy-used { color: var(--green); border-color: var(--green); }
+  .badge.doggy-available { color: var(--green); border-color: var(--green); }
 
-  .pc-lives { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
-  .life-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); display: inline-block; }
-  .life-dot.used { background: var(--panel); border: 1px solid var(--border); }
-  .pc-progress { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .pc-lives { display: flex; align-items: baseline; gap: 5px; margin-top: 4px; }
+  .pc-lives-value { font-size: 1.2rem; font-weight: 800; color: var(--red); line-height: 1; }
+  .pc-lives-label { font-size: 0.72rem; color: var(--muted); }
 
   .pc-out-stamp {
     font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
@@ -285,10 +292,6 @@
     <div class="card">
       <div class="setup-options">
         <div class="option-block">
-          <label for="startLives">Starting lives</label>
-          <input type="number" id="startLives" min="1" max="10" value="3" style="width:80px;">
-        </div>
-        <div class="option-block">
           <div class="checkbox-line">
             <input type="checkbox" id="doggyLifeToggle">
             <label for="doggyLifeToggle" style="margin:0;">Doggy life rule</label>
@@ -303,7 +306,7 @@
           <span class="hint">By default, a killer hitting their own number does nothing. In hard mode it costs them lives too (single −1, double −2, triple −3).</span>
         </div>
       </div>
-      <p class="hint" style="margin-bottom:10px;">Becoming a killer always takes 3 points on your own number (single = 1, double = 2, triple = 3).</p>
+      <p class="hint" style="margin-bottom:10px;">Everyone starts on 0 lives. Hitting your own number builds lives up (single = +1, double = +2, triple = +3) — reach 3 and you become a killer. From then on, opponents hitting your number brings your lives back down the same way.</p>
       <button class="btn btn-primary" id="startGameBtn">Start Game</button>
     </div>
   </section>
@@ -358,7 +361,6 @@
   const quickAddWrap = document.getElementById('quickAddWrap');
   const quickAddChips = document.getElementById('quickAddChips');
   const startGameBtn = document.getElementById('startGameBtn');
-  const startLivesInput = document.getElementById('startLives');
   const doggyLifeToggle = document.getElementById('doggyLifeToggle');
   const hardModeToggle = document.getElementById('hardModeToggle');
 
@@ -379,6 +381,22 @@
   let history = [];
   let selectedMult = 'S';
   let rowCount = 0;
+
+  // ---------- Tactile button feedback ----------
+  // iOS Safari only applies :active styles once a touch listener exists,
+  // and buttons here get re-created constantly (innerHTML re-renders), so
+  // feedback is driven by delegated pointer events instead of :active/JS
+  // listeners attached per-button.
+  document.body.addEventListener('touchstart', function () {}, { passive: true });
+  document.addEventListener('pointerdown', (e) => {
+    const btn = e.target.closest('button');
+    if (btn && !btn.disabled) btn.classList.add('pressed');
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(evt => {
+    document.addEventListener(evt, () => {
+      document.querySelectorAll('button.pressed').forEach(b => b.classList.remove('pressed'));
+    });
+  });
 
   // ---------- Setup screen ----------
 
@@ -496,12 +514,9 @@
 
     recordKnownPlayers(players.map(p => p.name));
 
-    const startLives = Math.max(1, parseInt(startLivesInput.value, 10) || 3);
-
     game = {
       doggyEnabled: doggyLifeToggle.checked,
       hardMode: hardModeToggle.checked,
-      startLives,
       players: players.map((p, i) => ({ id: i, name: p.name, number: p.number })),
       throws: [],
       currentIndex: 0,
@@ -516,29 +531,41 @@
 
   // ---------- Derived state (pure replay of throws) ----------
 
+  // player.isKiller (below) is a one-way flag: it governs game logic (hunting
+  // rights, self-hit behaviour) and never reverts once earned. The killer
+  // badge/styling is purely visual and should track current lives instead —
+  // a killer who's been knocked back under 3 no longer *looks* like one.
+  function isDisplayKiller(p) {
+    return !p.eliminated && p.lives >= POINTS_TO_KILL;
+  }
+
   function deriveState(g) {
     const players = g.players.map(p => ({
       id: p.id, name: p.name, number: p.number,
-      lives: g.startLives, ownPoints: 0, isKiller: false,
+      lives: 0, isKiller: false,
       doggyUsed: false, eliminated: false,
     }));
     const byId = new Map(players.map(p => [p.id, p]));
     const byNumber = new Map(players.map(p => [p.number, p]));
     const events = [];
 
-    function applyLifeLoss(target, amount) {
+    // Removes `amount` lives one at a time, checking the doggy-life rule
+    // at each step: reaching 0 is safe, the first life lost below that is
+    // saved once (if doggy life is enabled and unused), any loss after
+    // that eliminates the player.
+    function loseLives(player, amount) {
       let lost = 0;
       for (let i = 0; i < amount; i++) {
-        if (target.eliminated) break;
-        target.lives -= 1;
+        if (player.eliminated) break;
+        player.lives -= 1;
         lost++;
-        if (target.lives < 0) {
-          if (g.doggyEnabled && !target.doggyUsed) {
-            target.doggyUsed = true;
-            target.lives = 0;
+        if (player.lives < 0) {
+          if (g.doggyEnabled && !player.doggyUsed) {
+            player.doggyUsed = true;
+            player.lives = 0;
           } else {
-            target.eliminated = true;
-            target.lives = 0;
+            player.lives = 0;
+            player.eliminated = true;
             break;
           }
         }
@@ -566,24 +593,24 @@
       }
       if (target.id === thrower.id) {
         if (!thrower.isKiller) {
-          thrower.ownPoints += value;
-          if (thrower.ownPoints >= POINTS_TO_KILL) {
+          thrower.lives += value;
+          if (thrower.lives >= POINTS_TO_KILL) {
             thrower.isKiller = true;
-            events.push(`${thrower.name} — ${label} (own #) → becomes KILLER`);
+            events.push(`${thrower.name} — ${label} (own #) → on ${thrower.lives}, becomes KILLER`);
           } else {
-            events.push(`${thrower.name} — ${label} (own #) → ${thrower.ownPoints}/${POINTS_TO_KILL} to killer`);
+            events.push(`${thrower.name} — ${label} (own #) → on ${thrower.lives}, needs ${POINTS_TO_KILL} to become killer`);
           }
         } else if (g.hardMode) {
-          const lost = applyLifeLoss(thrower, value);
-          events.push(`${thrower.name} — ${label} (own #, hard mode) → −${lost}${thrower.eliminated ? ' (OUT)' : ''}`);
+          const lost = loseLives(thrower, value);
+          events.push(`${thrower.name} — ${label} (own #, hard mode) → −${lost}, on ${thrower.lives}${thrower.eliminated ? ' (OUT)' : ''}`);
         } else {
           events.push(`${thrower.name} — ${label} (own #, no effect)`);
         }
       } else if (target.eliminated) {
         events.push(`${thrower.name} — ${label} (${target.name} already out)`);
       } else if (thrower.isKiller) {
-        const lost = applyLifeLoss(target, value);
-        events.push(`${thrower.name} — ${label} → ${target.name} −${lost}${target.eliminated ? ' (OUT)' : ''}`);
+        const lost = loseLives(target, value);
+        events.push(`${thrower.name} — ${label} → ${target.name} −${lost}, on ${target.lives}${target.eliminated ? ' (OUT)' : ''}`);
       } else {
         events.push(`${thrower.name} — ${label} (not a killer yet, no effect)`);
       }
@@ -673,7 +700,7 @@
       if (!owner) btn.className += ' unclaimed';
       if (owner && owner.eliminated) btn.className += ' eliminated-owner';
       if (owner && current && owner.id === current.id) btn.className += ' own-number';
-      if (owner && owner.isKiller) btn.className += ' killer-owner';
+      if (owner && isDisplayKiller(owner)) btn.className += ' killer-owner';
       btn.innerHTML = `${n}${owner ? `<span class="owner">${escapeHtml(owner.name)}</span>` : ''}`;
       btn.addEventListener('click', () => logThrow(n, selectedMult));
       numberGrid.appendChild(btn);
@@ -693,7 +720,9 @@
       turnBanner.style.display = 'block';
       const current = derived.players.find(p => p.id === game.currentIndex);
       const sub = current
-        ? (current.isKiller ? '🗡 killer' : `${current.ownPoints}/${POINTS_TO_KILL} points to become killer`)
+        ? (isDisplayKiller(current)
+            ? `🗡 killer — on ${current.lives} lives`
+            : `on ${current.lives}/${POINTS_TO_KILL} to become killer`)
         : '';
       const lastThrow = derived.events.length ? derived.events[derived.events.length - 1] : '';
       turnBanner.innerHTML = current ? `
@@ -715,27 +744,26 @@
 
     playersList.innerHTML = '';
     derived.players.forEach((p) => {
+      const displayKiller = isDisplayKiller(p);
       const card = document.createElement('div');
       card.className = 'player-card';
       if (p.eliminated) card.className += ' eliminated';
-      if (p.isKiller && !p.eliminated) card.className += ' killer';
+      if (displayKiller) card.className += ' killer';
       if (p.id === game.currentIndex && !p.eliminated && !winner) card.className += ' current';
-
-      const dots = [];
-      for (let i = 0; i < game.startLives; i++) {
-        dots.push(`<span class="life-dot ${i < p.lives ? '' : 'used'}"></span>`);
-      }
 
       card.innerHTML = `
         <div class="pc-number">${p.number}</div>
         <div class="pc-mid">
           <div class="pc-name-row">
             <span class="pc-name">${escapeHtml(p.name)}</span>
-            ${p.isKiller && !p.eliminated ? '<span class="badge killer">🗡 KILLER</span>' : ''}
-            ${game.doggyEnabled && p.doggyUsed ? '<span class="badge doggy-used">🐾</span>' : ''}
+            ${displayKiller ? '<span class="badge killer">🗡 KILLER</span>' : ''}
+            ${game.doggyEnabled && !p.doggyUsed && !p.eliminated ? '<span class="badge doggy-available">🐾</span>' : ''}
           </div>
-          <div class="pc-lives">${dots.join('')}<span class="pc-progress">${p.lives}/${game.startLives}</span></div>
-          ${!p.isKiller && !p.eliminated ? `<div class="pc-progress">${p.ownPoints}/${POINTS_TO_KILL} to killer</div>` : ''}
+          ${displayKiller ? '' : `
+          <div class="pc-lives">
+            <span class="pc-lives-value">${p.lives}</span>
+            <span class="pc-lives-label">/ ${POINTS_TO_KILL} to killer</span>
+          </div>`}
         </div>
         ${p.eliminated ? '<span class="pc-out-stamp">OUT</span>' : ''}
       `;
