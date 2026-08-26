@@ -33,19 +33,11 @@ python3 -m http.server 8000
 
 ## Host it on GitHub Pages
 
-1. Create a new repo on GitHub (e.g. `killer-darts-scorer`).
-2. Push this folder to it:
-   ```bash
-   git init
-   git add index.html README.md
-   git commit -m "Killer darts scorer"
-   git branch -M main
-   git remote add origin git@github.com:<your-username>/killer-darts-scorer.git
-   git push -u origin main
-   ```
-3. On GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
+This repo is already pushed to `github.com/mharry97/killer-darts-scorer`. To turn on Pages:
+
+1. On GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
    branch `main`, folder `/ (root)`. Save.
-4. Your scorer will be live at `https://<your-username>.github.io/killer-darts-scorer/`
+2. Your scorer will be live at `https://mharry97.github.io/killer-darts-scorer/`
    after a minute or two.
 
 ## Notes
