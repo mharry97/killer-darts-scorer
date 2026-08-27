@@ -187,6 +187,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .num-btn .tile-dots {
+    font-size: 0.45rem;
+    line-height: 1;
+    color: var(--red);
+    letter-spacing: 1px;
+    margin-top: 1px;
+  }
   .num-btn.unclaimed { opacity: 0.32; }
   .num-btn.own-number { border-color: var(--green); }
   .num-btn.killer-owner { border-color: var(--red); }
@@ -700,7 +707,8 @@
       if (owner && owner.eliminated) btn.className += ' eliminated-owner';
       if (owner && current && owner.id === current.id) btn.className += ' own-number';
       if (owner && owner.isKiller) btn.className += ' killer-owner';
-      btn.innerHTML = `${n}${owner ? `<span class="owner">${escapeHtml(owner.name)}</span>` : ''}`;
+      const showDots = owner && !owner.eliminated && !owner.isKiller && owner.lives > 0;
+      btn.innerHTML = `${n}${owner ? `<span class="owner">${escapeHtml(owner.name)}</span>` : ''}${showDots ? `<span class="tile-dots">${'●'.repeat(owner.lives)}</span>` : ''}`;
       btn.addEventListener('click', () => logThrow(n, selectedMult));
       numberGrid.appendChild(btn);
     }
