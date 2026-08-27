@@ -647,22 +647,26 @@
       if (!thrower) return;
       if (t.mult === null) {
         events.push(`${thrower.name} — miss`);
-        log.push({ playerId: thrower.id, mult: null, targetId: null, effective: false });
+        log.push({ playerId: thrower.id, mult: null, targetId: null, effective: false, onTarget: false });
         return;
       }
       const value = MULT_VALUE[t.mult];
       const label = `${MULT_LABEL[t.mult]}${t.number}`;
       if (thrower.eliminated) {
         events.push(`${thrower.name} — ${label} (already out)`);
-        log.push({ playerId: thrower.id, mult: t.mult, targetId: null, effective: false });
+        log.push({ playerId: thrower.id, mult: t.mult, targetId: null, effective: false, onTarget: false });
         return;
       }
       const target = byNumber.get(t.number);
       if (!target) {
         events.push(`${thrower.name} — ${label} (unclaimed)`);
-        log.push({ playerId: thrower.id, mult: t.mult, targetId: null, effective: false });
+        log.push({ playerId: thrower.id, mult: t.mult, targetId: null, effective: false, onTarget: false });
         return;
       }
+      // "Successful" single/double/triple = landed on a real, still-active
+      // number — independent of whether killer-status rules let this
+      // particular hit actually change anything (that's `effective`).
+      const onTarget = target.id === thrower.id || !target.eliminated;
       let effective = false;
       if (target.id === thrower.id) {
         if (!killerCheck(thrower)) {
@@ -690,7 +694,7 @@
       } else {
         events.push(`${thrower.name} — ${label} (not a killer yet, no effect)`);
       }
-      log.push({ playerId: thrower.id, mult: t.mult, targetId: target.id, effective });
+      log.push({ playerId: thrower.id, mult: t.mult, targetId: target.id, effective, onTarget });
     });
 
     players.forEach(p => { p.isKiller = killerCheck(p); });
@@ -705,9 +709,9 @@
       const own = derived.log.filter(r => r.playerId === p.id);
       const total = own.length;
       const effective = own.filter(r => r.effective).length;
-      const singles = own.filter(r => r.mult === 'S').length;
-      const doubles = own.filter(r => r.mult === 'D').length;
-      const triples = own.filter(r => r.mult === 'T').length;
+      const singles = own.filter(r => r.mult === 'S' && r.onTarget).length;
+      const doubles = own.filter(r => r.mult === 'D' && r.onTarget).length;
+      const triples = own.filter(r => r.mult === 'T' && r.onTarget).length;
 
       const dealt = new Map(); // targetId -> effective hit count
       own.forEach(r => {
