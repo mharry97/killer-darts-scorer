@@ -529,19 +529,18 @@
 
   // ---------- Derived state (pure replay of throws) ----------
 
-  // player.isKiller (below) is a one-way flag: it governs game logic (hunting
-  // rights, self-hit behaviour) and never reverts once earned. The killer
-  // badge/styling is purely visual and should track current lives instead —
-  // a killer who's been knocked back under 3 no longer *looks* like one.
-  function isDisplayKiller(p) {
+  // Killer status is fully derived from current lives — it's never a
+  // sticky one-way flag. Drop back under 3 lives and self-hits build you
+  // back up again, exactly like before you first became a killer; you
+  // also can't hunt others again until you're back on 3+.
+  function killerCheck(p) {
     return !p.eliminated && p.lives >= POINTS_TO_KILL;
   }
 
   function deriveState(g) {
     const players = g.players.map(p => ({
       id: p.id, name: p.name, number: p.number,
-      lives: 0, isKiller: false,
-      doggyUsed: false, eliminated: false,
+      lives: 0, doggyUsed: false, eliminated: false,
     }));
     const byId = new Map(players.map(p => [p.id, p]));
     const byNumber = new Map(players.map(p => [p.number, p]));
@@ -590,10 +589,9 @@
         return;
       }
       if (target.id === thrower.id) {
-        if (!thrower.isKiller) {
+        if (!killerCheck(thrower)) {
           thrower.lives += value;
-          if (thrower.lives >= POINTS_TO_KILL) {
-            thrower.isKiller = true;
+          if (killerCheck(thrower)) {
             events.push(`${thrower.name} — ${label} (own #) → on ${thrower.lives}, becomes KILLER`);
           } else {
             events.push(`${thrower.name} — ${label} (own #) → on ${thrower.lives}, needs ${POINTS_TO_KILL} to become killer`);
@@ -606,7 +604,7 @@
         }
       } else if (target.eliminated) {
         events.push(`${thrower.name} — ${label} (${target.name} already out)`);
-      } else if (thrower.isKiller) {
+      } else if (killerCheck(thrower)) {
         const lost = loseLives(target, value);
         events.push(`${thrower.name} — ${label} → ${target.name} −${lost}, on ${target.lives}${target.eliminated ? ' (OUT)' : ''}`);
       } else {
@@ -614,6 +612,7 @@
       }
     });
 
+    players.forEach(p => { p.isKiller = killerCheck(p); });
     return { players, events };
   }
 
@@ -699,7 +698,7 @@
       if (!owner) btn.className += ' unclaimed';
       if (owner && owner.eliminated) btn.className += ' eliminated-owner';
       if (owner && current && owner.id === current.id) btn.className += ' own-number';
-      if (owner && isDisplayKiller(owner)) btn.className += ' killer-owner';
+      if (owner && owner.isKiller) btn.className += ' killer-owner';
       btn.innerHTML = `${n}${owner ? `<span class="owner">${escapeHtml(owner.name)}</span>` : ''}`;
       btn.addEventListener('click', () => logThrow(n, selectedMult));
       numberGrid.appendChild(btn);
@@ -719,7 +718,7 @@
       turnBanner.style.display = 'block';
       const current = derived.players.find(p => p.id === game.currentIndex);
       const sub = current
-        ? (isDisplayKiller(current)
+        ? (current.isKiller
             ? `🗡 killer — on ${current.lives} lives`
             : `on ${current.lives}/${POINTS_TO_KILL} to become killer`)
         : '';
@@ -743,7 +742,7 @@
 
     playersList.innerHTML = '';
     derived.players.forEach((p) => {
-      const displayKiller = isDisplayKiller(p);
+      const displayKiller = p.isKiller;
       const card = document.createElement('div');
       card.className = 'player-card';
       if (p.eliminated) card.className += ' eliminated';
