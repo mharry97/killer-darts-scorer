@@ -592,6 +592,7 @@
         if (!killerCheck(thrower)) {
           thrower.lives += value;
           if (killerCheck(thrower)) {
+            thrower.lives = POINTS_TO_KILL; // no banking overshoot — killers always start on exactly 3
             events.push(`${thrower.name} — ${label} (own #) → on ${thrower.lives}, becomes KILLER`);
           } else {
             events.push(`${thrower.name} — ${label} (own #) → on ${thrower.lives}, needs ${POINTS_TO_KILL} to become killer`);

@@ -8,9 +8,12 @@ the log — no manual score-fiddling.
 
 - Each player claims a number (1–20). Everyone starts on **0 lives** — there's no preset pool.
 - Hitting your own number builds your lives up: single = +1, double = +2, triple = +3.
-  Reach **3** and you become a killer.
+  Reach **3** and you become a killer — always exactly 3, even if the hit that got you
+  there would've overshot (e.g. going from 2 to a double lands you on 3, not 4).
 - Once a player is a killer, an opponent hitting their number brings their lives back down
-  the same way (single −1, double −2, triple −3).
+  the same way (single −1, double −2, triple −3). Drop back under 3 and you're not a killer
+  any more — self-hits start building you back up again, and you can't hunt others until
+  you've rebuilt to 3.
 - By default, a killer hitting their **own** number does nothing further. Turning on
   **hard mode** makes those self-hits cost lives too, same as being hit by someone else.
 - Optional **doggy life** rule: reaching 0 lives is safe, but the first hit that would take
