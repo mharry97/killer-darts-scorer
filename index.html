@@ -323,7 +323,6 @@
       </div>
       <div class="number-grid" id="numberGrid"></div>
       <div class="btn-row">
-        <button class="btn" id="missBtn">Miss</button>
         <button class="btn" id="undoBtn">Undo last dart</button>
         <button class="btn" id="endTurnBtn">End turn</button>
       </div>
@@ -369,7 +368,6 @@
   const numberGrid = document.getElementById('numberGrid');
   const playersList = document.getElementById('playersList');
   const throwLog = document.getElementById('throwLog');
-  const missBtn = document.getElementById('missBtn');
   const undoBtn = document.getElementById('undoBtn');
   const endTurnBtn = document.getElementById('endTurnBtn');
   const newGameBtn = document.getElementById('newGameBtn');
@@ -656,6 +654,7 @@
     if ((currentAfter && currentAfter.eliminated) || game.dartsThisTurn >= 3) {
       advanceTurn(derivedAfter);
     }
+    selectedMult = 'S';
     saveGame();
     renderGame();
   }
@@ -788,7 +787,6 @@
     });
   });
 
-  missBtn.addEventListener('click', () => logThrow(null, null));
   undoBtn.addEventListener('click', undo);
   endTurnBtn.addEventListener('click', endTurnManually);
 
