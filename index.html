@@ -592,6 +592,7 @@
     history = [];
     selectedMult = 'S';
     lastTurnPlayerId = undefined;
+    resumeBanner.style.display = 'none';
     saveGame();
     renderGame();
     showSection('game');
@@ -936,6 +937,7 @@
     const carriedNames = game ? game.players.map(p => p.name) : [];
     game = null;
     history = [];
+    resumeBanner.style.display = 'none';
     localStorage.removeItem(STORAGE_KEY);
     playerRows.innerHTML = '';
     rowCount = 0;
