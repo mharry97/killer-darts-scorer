@@ -707,7 +707,7 @@
       if (owner && owner.eliminated) btn.className += ' eliminated-owner';
       if (owner && current && owner.id === current.id) btn.className += ' own-number';
       if (owner && owner.isKiller) btn.className += ' killer-owner';
-      const showDots = owner && !owner.eliminated && !owner.isKiller && owner.lives > 0;
+      const showDots = owner && !owner.eliminated && owner.lives > 0;
       btn.innerHTML = `${n}${owner ? `<span class="owner">${escapeHtml(owner.name)}</span>` : ''}${showDots ? `<span class="tile-dots">${'●'.repeat(owner.lives)}</span>` : ''}`;
       btn.addEventListener('click', () => logThrow(n, selectedMult));
       numberGrid.appendChild(btn);
